@@ -7,10 +7,19 @@ import (
 	"os"
 	"strings"
 	"sync"
+	"time"
 )
 
 func ping(url string, respCh chan int, errCh chan error) {
-	resp, err := http.Get(url)
+	client := http.Client{
+		Timeout: 15 * time.Second,
+	}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		errCh <- err
+		return
+	}
+	resp, err := client.Do(req)
 	if err != nil {
 		errCh <- err
 		return
@@ -24,7 +33,7 @@ func main() {
 	file, err := os.ReadFile(*path)
 	if err != nil {
 		fmt.Println("Ошибка чтения файла")
-		panic(err.Error())
+		os.Exit(2)
 	}
 	urls := strings.Split(string(file), "\n")
 
@@ -39,9 +48,9 @@ func main() {
 	respCh := make(chan int)
 	errCh := make(chan error)
 	for _, value := range validUrls {
-		wg.Go(func() {
-			ping(value, respCh, errCh)
-		})
+		wg.Go(func(url string) {
+			ping(url, respCh, errCh)
+		}(value))
 	}
 	for range len(validUrls) {
 		select {
