@@ -48,9 +48,9 @@ func main() {
 	respCh := make(chan int)
 	errCh := make(chan error)
 	for _, value := range validUrls {
-		wg.Go(func(url string) {
-			ping(url, respCh, errCh)
-		}(value))
+		wg.Go(func() {
+			ping(value, respCh, errCh)
+		})
 	}
 	for range len(validUrls) {
 		select {
@@ -60,9 +60,4 @@ func main() {
 			fmt.Printf("Status code: %d\n", resp)
 		}
 	}
-	func() {
-		defer close(respCh)
-		defer close(errCh)
-		wg.Wait()
-	}()
 }
